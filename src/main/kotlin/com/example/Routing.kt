@@ -3,7 +3,6 @@ package com.example
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.http.*
 import io.ktor.server.html.*
 import io.ktor.server.request.*
 import kotlinx.html.*
@@ -17,6 +16,10 @@ import io.ktor.server.sessions.*
 import org.mindrot.jbcrypt.BCrypt
 import com.example.models.UserSession
 import com.example.utils.requireUserSession
+import com.example.dto.InvoicesInput
+import com.example.dto.UsersInput
+import io.ktor.http.HttpStatusCode
+import java.time.LocalDate
 
 fun Application.configureRouting() {
     routing {
@@ -92,39 +95,25 @@ fun Application.configureRouting() {
         // 請求書登録-post
         post("/invoice") {
             val session = call.requireUserSession() ?: return@post
-
             val params = call.receiveParameters()
-            val company = params["company"] ?: "Unknown"
-            val personInCharge = params["personInCharge"] ?: "N/A"
-            val loanAmount = params["loanAmount"]!!.toBigDecimal()
-            val dateFrom = params["dateFrom"].let {
-                LocalDateTime.parse(it, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
-            }
-            val dateTo = params["dateTo"].let {
-                LocalDateTime.parse(it, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
-            }
-            val dueDate = params["dueDate"].let {
-                LocalDateTime.parse(it, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
-            }
 
-            val connection = connectToDatabase()
-            val invoice = insertInvoice(connection, company, personInCharge, loanAmount, dateFrom, dateTo, dueDate, session.userId)
-            connection.close()
+            try {
+                val invoicesInput = InvoicesInput.fromParameters(params, session.userId)
+                val invoice = insertInvoice(invoicesInput)
 
-            if (invoice == null) {
-                call.respondText("Failed to save user profile.", status = io.ktor.http.HttpStatusCode.InternalServerError)
-                return@post
-            }
+                println("Saved invoice: $invoice")
 
-            println("Saved invoice: $invoice")
-
-            call.respondHtml {
-                head {
-                    title { +"Profile Received" }
+                call.respondHtml {
+                    head {
+                        title { +"User Profile Received" }
+                    }
+                    body {
+                        invoiceList(invoice)
+                    }
                 }
-                body {
-                    invoiceList(invoice)
-                }
+            } catch (e: Exception) {
+                e.printStackTrace() // Or use logger
+                call.respondText("Failed to save invoices: ${e.message}", status = HttpStatusCode.InternalServerError)
             }
         }
 
@@ -147,14 +136,12 @@ fun Application.configureRouting() {
             val session = call.requireUserSession() ?: return@post
 
             val params = call.receiveParameters()
-            val dateFrom = params["dateFrom"].let {
-                LocalDateTime.parse(it, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
-            }
-            val dateTo = params["dateTo"].let {
-                LocalDateTime.parse(it, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
-            }
+            val formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd") // replace with your actual format
 
-            val invoiceList = fetchActiveDueDateInRange(connectToDatabase(), dateFrom, dateTo, session.userId)
+            val dateFrom = LocalDate.parse(params["dateFrom"]!!)
+            val dateTo = LocalDate.parse(params["dateTo"]!!)
+
+            val invoiceList = fetchActiveDueDateInRange(dateFrom, dateTo, session.userId)
             call.respondHtml {
                 head { title { +"請求書" } }
                 body { invoiceTable(invoiceList) }
@@ -174,37 +161,34 @@ fun Application.configureRouting() {
         }
 
         post("/profile") {
+
+//            val session = call.requireUserSession() ?: return@post
             val params = call.receiveParameters()
-            val name = params["name"] ?: "Unknown"
-            val email = params["email"] ?: "N/A"
-            val age = params["age"]?.toIntOrNull() ?: -1
-            val password = params["password"] ?: ""
 
-            val connection = connectToDatabase()
-            val userProfile = insertUserProfile(connection, name, email, age, password, LocalDateTime.now(Clock.system(ZoneId.of("Asia/Tokyo"))))
-            connection.close()
+            try {
+                val usersInput = UsersInput.fromParameters(params)
+                val users = insertUserProfile(usersInput)
 
-            if (userProfile == null) {
-                call.respondText("Failed to save user profile.", status = io.ktor.http.HttpStatusCode.InternalServerError)
-                return@post
-            }
+                println("Saved user profile: $users")
 
-            println("Saved user profile: $userProfile")
-
-            call.respondHtml {
-                head {
-                    title { +"Profile Received" }
+                call.respondHtml {
+                    head {
+                        title { +"Users Received" }
+                    }
+                    body {
+                        userProfileList(users)
+                    }
                 }
-                body {
-                    userProfileList(userProfile)
-                }
+            } catch (e: Exception) {
+                e.printStackTrace() // Or use logger
+                call.respondText("Failed to save Users: ${e.message}", status = HttpStatusCode.InternalServerError)
             }
         }
 
         get("/users") {
             call.requireUserSession() ?: return@get
 
-            val users = fetchAllUsers(connectToDatabase())
+            val users = fetchAllUsers()
             call.respondHtml {
                 head { title { +"User Profiles" } }
                 body { userTable(users) }
@@ -241,31 +225,23 @@ fun Application.configureRouting() {
             val params = call.receiveParameters()
             val email = params["email"] ?: ""
             val password = params["password"] ?: ""
-
-            val connection = connectToDatabase()
-
+            println("email: $email")
             // Fetch user from DB
-            val stmt = connection.prepareStatement("SELECT user_id, password FROM UserProfile WHERE email = ?")
-            stmt.setString(1, email)
-            val rs = stmt.executeQuery()
-
-            if (rs.next()) {
-                val userId = rs.getInt("user_id")
-                val hashedPassword = rs.getString("password")
+            val user = fetchUserByEmail(email)
+            println("user: $user")
+            if (user !== null) {
+                val userId = user.userId
+                val hashedPassword = user.password
 
                 if (BCrypt.checkpw(password, hashedPassword)) {
                     call.sessions.set(UserSession(userId, email))
                     call.respondRedirect("/") // or dashboard
                 } else {
-                    call.respondText("Invalid email or password")
+                    call.respondText("メールアドレス、またはパスワードが間違えています。")
                 }
             } else {
-                call.respondText("Invalid email or password")
+                call.respondText("メールアドレス、またはパスワードが間違えています。")
             }
-
-            rs.close()
-            stmt.close()
-            connection.close()
         }
 
         get("/logout") {

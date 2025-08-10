@@ -1,30 +1,31 @@
 package com.example.views
 
-import com.example.models.UserProfile
+import com.example.models.Users
 import kotlinx.html.*
+import org.jetbrains.exposed.sql.javatime.timestamp
 import java.time.format.DateTimeFormatter
 
-fun FlowContent.userTable(users: List<UserProfile>) {
+fun FlowContent.userTable(users: List<Users>) {
     h1 { +"ユーザー一覧" }
     table {
         attributes["border"] = "1"
         tr {
-            th { +"ID" }
-            th { +"姓名" }
+            th { +"企業名" }
+            th { +"氏名" }
             th { +"メールアドレス" }
-            th { +"年齢" }
-            th { +"最終更新日時" }
+            th { +"作成日時" }
+            th { +"更新日時" }
         }
         for (user in users) {
             tr {
-                td { +user.userId.toString() }
+                td { +user.companyName }
                 td { +user.name }
                 td { +user.email }
-                td { +user.age.toString() }
-                td { +user.lastUpdateDate.format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss")) }
+                td { +user.createdAt.format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss")) }
+                td { +user.updatedAt.format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss")) }
             }
-            println("Raw: ${user.lastUpdateDate}")
-            println("Formatted: ${user.lastUpdateDate.format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss"))}")
+            println("Raw: ${user.createdAt}")
+            println("Formatted: ${user.createdAt.format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss"))}")
 
         }
     }
