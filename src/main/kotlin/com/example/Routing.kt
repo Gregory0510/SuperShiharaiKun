@@ -17,9 +17,14 @@ import org.mindrot.jbcrypt.BCrypt
 import com.example.models.UserSession
 import com.example.utils.requireUserSession
 import com.example.dto.InvoicesInput
+import com.example.dto.InvoicesOutput
 import com.example.dto.UsersInput
 import io.ktor.http.HttpStatusCode
 import java.time.LocalDate
+import com.example.utils.generateToken
+import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 
 fun Application.configureRouting() {
     routing {
@@ -93,7 +98,7 @@ fun Application.configureRouting() {
         }
 
         // 請求書登録-post
-        post("/invoice") {
+        post("/web/invoice") {
             val session = call.requireUserSession() ?: return@post
             val params = call.receiveParameters()
 
@@ -201,7 +206,7 @@ fun Application.configureRouting() {
                     title { +"Login" }
                 }
                 body {
-                    form(action = "/login", method = FormMethod.post) {
+                    form(action = "/web/login", method = FormMethod.post) {
                         p {
                             label { +"Email: " }
                             emailInput(name = "email")
@@ -221,7 +226,7 @@ fun Application.configureRouting() {
             }
         }
 
-        post("/login") {
+        post("/web/login") {
             val params = call.receiveParameters()
             val email = params["email"] ?: ""
             val password = params["password"] ?: ""
@@ -235,12 +240,71 @@ fun Application.configureRouting() {
 
                 if (BCrypt.checkpw(password, hashedPassword)) {
                     call.sessions.set(UserSession(userId, email))
-                    call.respondRedirect("/") // or dashboard
+                    call.respondRedirect("/")
                 } else {
                     call.respondText("メールアドレス、またはパスワードが間違えています。")
                 }
             } else {
                 call.respondText("メールアドレス、またはパスワードが間違えています。")
+            }
+        }
+
+        post("/api/login") {
+            val params = call.receiveParameters()
+            val email = params["email"] ?: return@post call.respondText("Missing email")
+            val password = params["password"] ?: return@post call.respondText("Missing password")
+
+            val user = fetchUserByEmail(email)
+            if (user == null || !BCrypt.checkpw(password, user.password)) {
+                return@post call.respondText("メールアドレス、またはパスワードが間違えています。", status = HttpStatusCode.Unauthorized)
+            }
+
+            val token = generateToken(user.userId)
+            call.respond(mapOf("token" to token))
+        }
+
+        authenticate("auth-jwt") {
+            // 請求書登録-post
+            post("/api/invoice") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal!!.payload.getClaim("userId").asInt()
+                val params = call.receiveParameters()
+
+                try {
+                    val invoicesInput = InvoicesInput.fromParameters(params, userId)
+                    val invoice = insertInvoice(invoicesInput)
+
+                    println("Saved invoice: $invoice")
+
+                    // ✅ Return JSON instead of HTML
+                    call.respond(invoice.toDTO())
+                } catch (e: Exception) {
+                    e.printStackTrace() // Consider using logging
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        mapOf(
+                            "status" to "error",
+                            "message" to (e.message ?: "Unknown error")
+                        )
+                    )
+                }
+            }
+
+            // 請求書検索-post
+            post("/api/invoice/list") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal!!.payload.getClaim("userId").asInt()
+
+                val params = call.receiveParameters()
+                val dateFrom = LocalDate.parse(params["dateFrom"]!!)
+                val dateTo = LocalDate.parse(params["dateTo"]!!)
+
+                val invoiceList = fetchActiveDueDateInRange(dateFrom, dateTo, userId)
+
+                // Convert your DAO objects to DTO or Output
+                val outputList = invoiceList.map { it.toDTO() }  // or toOutput()
+
+                call.respond(outputList)  // This will respond JSON array if content negotiation with JSON is configured
             }
         }
 
