@@ -6,19 +6,16 @@ fun FlowContent.profileForm() {
     h1 { +"ユーザー情報を入力してください。" }
     form(action = "/profile", method = FormMethod.post) {
         p {
-            label { +"姓名: " }
+            label { +"企業名: " }
+            textInput(name = "companyName")
+        }
+        p {
+            label { +"氏名: " }
             textInput(name = "name")
         }
         p {
             label { +"メールアドレス: " }
             emailInput(name = "email")
-        }
-        p {
-            label { +"年齢: " }
-            numberInput(name = "age") {
-                min = "0"
-                value = "20"
-            }
         }
         p {
             label { +"パスワード: " }

@@ -7,13 +7,13 @@ fun FlowContent.invoiceSearchForm() {
     form(action = "/invoice/list", method = FormMethod.post) {
         p {
             label { +"開始日時" }
-            dateTimeLocalInput(name = "dateFrom") {
+            dateInput(name = "dateFrom") {
                 required = true
             }
         }
         p {
             label { +"終了日時" }
-            dateTimeLocalInput(name = "dateTo") {
+            dateInput(name = "dateTo") {
                 required = true
             }
         }

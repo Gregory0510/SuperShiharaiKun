@@ -6,34 +6,15 @@ fun FlowContent.invoiceForm() {
     h1 { +"請求情報を入力してください。" }
     form(action = "/invoice", method = FormMethod.post) {
         p {
-            label { +"会社名: " }
-            textInput(name = "company")
-        }
-        p {
-            label { +"管理者: " }
-            textInput(name = "personInCharge")
-        }
-        p {
-            label { +"ローン金額: " }
-            numberInput(name = "loanAmount") {
+            label { +"支払金額" }
+            numberInput(name = "paymentAmount") {
                 min = "0"
-            }
-        }
-        p {
-            label { +"開始日時" }
-            dateTimeLocalInput(name = "dateFrom") {
-                required = true
-            }
-        }
-        p {
-            label { +"終了日時" }
-            dateTimeLocalInput(name = "dateTo") {
-                required = true
+                value = "500000"
             }
         }
         p {
             label { +"支払期日" }
-            dateTimeLocalInput(name = "dueDate") {
+            dateInput(name = "paymentDueDate") {
                 required = true
             }
         }

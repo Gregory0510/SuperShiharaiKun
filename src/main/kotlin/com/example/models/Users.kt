@@ -2,14 +2,16 @@ package com.example.models
 
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
+import org.jetbrains.exposed.sql.javatime.timestamp
 import java.time.LocalDateTime
 
 @Serializable
-data class UserProfile(
+data class Users(
     val userId: Int,
+    val companyName: String,
     val name: String,
     val email: String,
-    val age: Int,
     val password: String,
-    @Contextual val lastUpdateDate: LocalDateTime
+    @Contextual val createdAt: LocalDateTime,
+    @Contextual val updatedAt: LocalDateTime
 )
