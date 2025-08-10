@@ -1,5 +1,6 @@
 package com.example.db
 
+import com.example.dto.InvoicesOutput
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
@@ -36,4 +37,21 @@ class InvoicesDAO(id: EntityID<Int>) : IntEntity(id) {
     var paymentDueDate  by InvoicesTable.paymentDueDate
     var createdAt  by InvoicesTable.createdAt
     var updatedAt  by InvoicesTable.updatedAt
+}
+
+fun InvoicesDAO.toDTO(): InvoicesOutput {
+    return InvoicesOutput(
+        id = this.id.value,
+        userId = this.userId,
+        issueDate = this.issueDate.toString(),
+        paymentAmount = this.paymentAmount,
+        fee = this.fee,
+        feeRate = this.feeRate,
+        taxAmount = this.taxAmount,
+        taxRate = this.taxRate,
+        totalAmount = this.totalAmount,
+        paymentDueDate = this.paymentDueDate.toString(),
+        createdAt = this.createdAt.toString(),
+        updatedAt = this.updatedAt.toString()
+    )
 }
