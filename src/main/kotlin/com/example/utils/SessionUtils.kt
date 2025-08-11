@@ -1,6 +1,6 @@
 package com.example.utils
 
-import com.example.models.UserSession
+import com.example.dto.UserSession
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.sessions.*

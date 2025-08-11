@@ -2,7 +2,7 @@ package com.example
 
 import io.ktor.server.application.*
 import io.ktor.server.sessions.*
-import com.example.models.UserSession
+import com.example.dto.UserSession
 import org.jetbrains.exposed.sql.Database
 
 import com.auth0.jwt.JWT

@@ -3,26 +3,27 @@ package com.example.repository
 import com.example.dao.UsersDAO
 import com.example.dao.UsersTable
 import com.example.dto.UsersInput
-import com.example.models.Users
+import com.example.dto.UsersOutput
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.ZoneId
+import com.example.utils.formatDateTimeToString
 
 /**
  * メールアドレスでユーザー情報を取得する
  */
-fun fetchUserByEmail(email: String): Users? = transaction {
+fun fetchUserByEmail(email: String): UsersOutput? = transaction {
     UsersDAO.find {
         UsersTable.email eq email
     }.firstOrNull()?.let { dao ->
-        Users(
+        UsersOutput(
             userId = dao.id.value,
             companyName = dao.companyName,
             name = dao.name,
             email = dao.email,
             password = dao.password,
-            createdAt = dao.createdAt.atZone(ZoneId.systemDefault()).toLocalDateTime(),
-            updatedAt = dao.updatedAt.atZone(ZoneId.systemDefault()).toLocalDateTime()
+            createdAt = formatDateTimeToString(dao.createdAt),
+            updatedAt = formatDateTimeToString(dao.updatedAt)
         )
     }
 }
@@ -30,18 +31,8 @@ fun fetchUserByEmail(email: String): Users? = transaction {
 /**
  * ユーザー一覧の取得
  */
-fun fetchAllUsers(): List<Users> = transaction {
-    UsersDAO.all().map { dao ->
-        Users(
-            userId = dao.id.value,
-            companyName = dao.companyName,
-            name = dao.name,
-            email = dao.email,
-            password = dao.password,
-            createdAt = dao.createdAt.atZone(ZoneId.systemDefault()).toLocalDateTime(),
-            updatedAt = dao.updatedAt.atZone(ZoneId.systemDefault()).toLocalDateTime()
-        )
-    }
+fun fetchAllUsers(): List<UsersDAO> = transaction {
+    UsersDAO.all().toList()
 }
 
 /**

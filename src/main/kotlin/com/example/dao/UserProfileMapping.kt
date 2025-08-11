@@ -1,10 +1,12 @@
 package com.example.dao
 
+import com.example.dto.UsersOutput
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.javatime.timestamp
+import com.example.utils.formatDateTimeToString
 
 object UsersTable : IdTable<Int>("users") {
     override val id = integer("user_id").entityId()             // PK
@@ -25,4 +27,20 @@ class UsersDAO(id: EntityID<Int>) : IntEntity(id) {
     var password by UsersTable.password
     var createdAt  by UsersTable.createdAt
     var updatedAt  by UsersTable.updatedAt
+}
+
+fun UsersDAO.toDTO(): UsersOutput {
+    return UsersOutput(
+        userId = this.id.value,
+        companyName = this.companyName,
+        name = this.name,
+        email = this.email,
+        password = "********",
+        createdAt = formatDateTimeToString(this.createdAt),
+        updatedAt = formatDateTimeToString(this.updatedAt)
+    )
+}
+
+fun List<UsersDAO>.toDTOList(): List<UsersOutput> {
+    return this.map { it.toDTO() }
 }
