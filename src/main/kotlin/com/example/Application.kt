@@ -29,6 +29,9 @@ fun Application.module() {
     configureJson()
 }
 
+/**
+ * ログインセッションを設定します。
+ */
 fun Application.configureSessions() {
     install(Sessions) {
         cookie<UserSession>("USER_SESSION") {
@@ -38,20 +41,38 @@ fun Application.configureSessions() {
     }
 }
 
+/**
+ * DBの接続情報を設定します。
+ */
 fun Application.initDatabase() {
     Database.connect(
         url = "jdbc:mysql://localhost:3306/shiharaikun?useSSL=false&serverTimezone=Asia/Tokyo",
         driver = "com.mysql.cj.jdbc.Driver",
         user = "root",
         password = "root"
+        /**
+         * TODO:
+         * セキュアなキー情報をもっと安全な場所に保存する必要があることは理解していますが、これはデモ用なので、
+         * すべてを同じパッケージ内にまとめて、少ない設定でどのコンピュータにも簡単にデプロイできるようにしています。
+         * 将来的には、キーは環境変数、AWS Secrets Manager、HSMなどに保存することを推奨します。
+         */
     )
 }
 
+/**
+ * JWT認証を設定します。
+ */
 fun Application.configureSecurity() {
     val jwtIssuer = "ktor.io"
     val jwtAudience = "ktor_audience"
     val jwtRealm = "ktor_sample"
-    val jwtSecret = "your-secret-key"
+    val jwtSecret = "h6GFiT76j(54H!hsSu8JDs?fH"
+    /**
+     * TODO:
+     * セキュアなキー情報をもっと安全な場所に保存する必要があることは理解していますが、これはデモ用なので、
+     * すべてを同じパッケージ内にまとめて、少ない設定でどのコンピュータにも簡単にデプロイできるようにしています。
+     * 将来的には、キーは環境変数、AWS Secrets Manager、HSMなどに保存することを推奨します。
+     */
 
     install(Authentication) {
         jwt("auth-jwt") {
@@ -70,6 +91,9 @@ fun Application.configureSecurity() {
     }
 }
 
+/**
+ * APIでJSONレスポンスを返すために使用するファイルを設定します。
+ */
 fun Application.configureJson() {
     install(ContentNegotiation) {
         json(Json {
@@ -81,7 +105,6 @@ fun Application.configureJson() {
 
             serializersModule = SerializersModule {
                 contextual(BigDecimal::class, BigDecimalSerializer)
-                // Add LocalDate and LocalDateTime serializers if needed
             }
         })
     }

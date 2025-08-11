@@ -2,7 +2,6 @@ package com.example.models
 
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
-import org.jetbrains.exposed.sql.javatime.timestamp
 import java.time.LocalDateTime
 
 @Serializable

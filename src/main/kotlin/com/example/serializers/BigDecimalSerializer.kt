@@ -5,6 +5,9 @@ import kotlinx.serialization.descriptors.*
 import kotlinx.serialization.encoding.*
 import java.math.BigDecimal
 
+/**
+ * BigDecimalのシリアライザー
+ */
 object BigDecimalSerializer : KSerializer<BigDecimal> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("BigDecimal", PrimitiveKind.STRING)
 

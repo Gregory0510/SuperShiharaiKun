@@ -4,8 +4,10 @@ import com.example.models.UserSession
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.sessions.*
-import io.ktor.http.*
 
+/**
+ * セッション管理の設定
+ */
 suspend fun ApplicationCall.requireUserSession(): UserSession? {
     val session = sessions.get<UserSession>()
     if (session == null) {
