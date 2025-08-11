@@ -1,13 +1,9 @@
 package com.example.dto
 
-import java.math.BigDecimal
-import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import io.ktor.http.Parameters
 import org.mindrot.jbcrypt.BCrypt
 import java.time.ZoneId
-import kotlin.text.toBigDecimal
 
 data class UsersInput(
     val companyName: String,

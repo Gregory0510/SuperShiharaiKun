@@ -23,13 +23,13 @@ data class InvoicesInput(
 ) {
     companion object {
         private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        private val FEE_RATE = BigDecimal("0.15")
+        private val FEE_RATE = BigDecimal("0.04")
         private val TAX_RATE = BigDecimal("0.10")
 
         fun fromParameters(params: Parameters, userId: Int): InvoicesInput {
             val amount = params["paymentAmount"]!!.toBigDecimal()
             val feeTotal = amount.multiply(FEE_RATE)
-            val taxTotal = amount.multiply(TAX_RATE)
+            val taxTotal = feeTotal.multiply(TAX_RATE)
 
             return InvoicesInput(
                 userId = userId,

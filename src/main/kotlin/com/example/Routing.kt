@@ -5,19 +5,13 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.html.*
 import io.ktor.server.request.*
-import kotlinx.html.*
-import com.example.db.*
+import com.example.repository.*
 import com.example.views.*
-import java.time.Clock
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import io.ktor.server.sessions.*
 import org.mindrot.jbcrypt.BCrypt
 import com.example.models.UserSession
 import com.example.utils.requireUserSession
 import com.example.dto.InvoicesInput
-import com.example.dto.InvoicesOutput
 import com.example.dto.UsersInput
 import io.ktor.http.HttpStatusCode
 import java.time.LocalDate
@@ -25,79 +19,29 @@ import com.example.utils.generateToken
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
+import com.example.dao.*
 
 fun Application.configureRouting() {
     routing {
+        // WEB用のホーム画面-get
         get("/") {
-
-            val session = call.sessions.get<UserSession>()
-            if (session == null) {
-                call.respondRedirect("/login")
-                return@get
-            }
+            call.requireUserSession() ?: return@get
 
             call.respondHtml {
-                head {
-                    style {
-                        unsafe {
-                            +"""
-                html, body {
-                    height: 100%;
-                    margin: 0;
-                }
-                body {
-                    display: flex;
-                    flex-direction: column;
-                    min-height: 100vh;
-                }
-                main {
-                    flex-grow: 1;
-                }
-                footer {
-                    background-color: #f2f2f2;
-                    text-align: center;
-                    padding: 1em;
-                }
-                """.trimIndent()
-                        }
-                    }
-                    title { +"スーパー支払い君.com" }
-                }
-                body {
-                    main {
-                        h1 { +"Hello World スーパー支払い君.com!" }
-                        a("/invoice") { +"①請求書登録" }
-                        br
-                        a("/invoice/list") { +"②請求書検索" }
-                        br
-                        a("/profile") { +"③ユーザ登録" }
-                        br
-                        br
-                        a("/logout") { +"ログアウト" }
-                    }
-                    footer {
-                        h3 { +"管理者の秘密メニュー" }
-                        a("/users") { +"ユーザー一覧" }
-                    }
-                }
+                homePage()
             }
         }
 
-        // 請求書登録-get
+        // WEB用の請求書登録画面-get
         get("/invoice") {
             call.requireUserSession() ?: return@get
 
             call.respondHtml {
-                head {
-                    title { +"Invoice Form" }
-                }
-                body {
-                    invoiceForm()
-                }
+                invoiceForm()
             }
         }
 
-        // 請求書登録-post
+        // WEB用の請求書登録-post
         post("/web/invoice") {
             val session = call.requireUserSession() ?: return@post
             val params = call.receiveParameters()
@@ -106,134 +50,88 @@ fun Application.configureRouting() {
                 val invoicesInput = InvoicesInput.fromParameters(params, session.userId)
                 val invoice = insertInvoice(invoicesInput)
 
-                println("Saved invoice: $invoice")
-
                 call.respondHtml {
-                    head {
-                        title { +"User Profile Received" }
-                    }
-                    body {
-                        invoiceList(invoice)
-                    }
+                    invoiceList(invoice)
                 }
             } catch (e: Exception) {
-                e.printStackTrace() // Or use logger
+                e.printStackTrace()
                 call.respondText("Failed to save invoices: ${e.message}", status = HttpStatusCode.InternalServerError)
             }
         }
 
-        // 請求書検索-get
+        // WEB用の請求書検索画面-get
         get("/invoice/list") {
             call.requireUserSession() ?: return@get
 
             call.respondHtml {
-                head {
-                    title { +"Invoice Form" }
-                }
-                body {
-                    invoiceSearchForm()
-                }
+                invoiceSearchForm()
             }
         }
 
-        // 請求書検索-post
+        // WEB用の請求書検索-post
         post("/invoice/list") {
             val session = call.requireUserSession() ?: return@post
-
             val params = call.receiveParameters()
-            val formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd") // replace with your actual format
 
             val dateFrom = LocalDate.parse(params["dateFrom"]!!)
             val dateTo = LocalDate.parse(params["dateTo"]!!)
 
             val invoiceList = fetchActiveDueDateInRange(dateFrom, dateTo, session.userId)
             call.respondHtml {
-                head { title { +"請求書" } }
-                body { invoiceTable(invoiceList) }
+                invoiceTable(invoiceList)
             }
         }
 
-        // ユーザー登録
+        // WEB用のユーザー登録画面-get
         get("/profile") {
             call.respondHtml {
-                head {
-                    title { +"User Profile Form" }
-                }
-                body {
-                    profileForm()
-                }
+                profileForm()
             }
         }
 
+        // WEB用のユーザ登録-post
         post("/profile") {
-
-//            val session = call.requireUserSession() ?: return@post
             val params = call.receiveParameters()
 
             try {
                 val usersInput = UsersInput.fromParameters(params)
                 val users = insertUserProfile(usersInput)
 
-                println("Saved user profile: $users")
-
                 call.respondHtml {
-                    head {
-                        title { +"Users Received" }
-                    }
-                    body {
-                        userProfileList(users)
-                    }
+                    userProfileList(users)
                 }
             } catch (e: Exception) {
-                e.printStackTrace() // Or use logger
+                e.printStackTrace()
                 call.respondText("Failed to save Users: ${e.message}", status = HttpStatusCode.InternalServerError)
             }
         }
 
+        // WEB用のユーザー一覧-get
         get("/users") {
             call.requireUserSession() ?: return@get
 
             val users = fetchAllUsers()
             call.respondHtml {
-                head { title { +"User Profiles" } }
-                body { userTable(users) }
+                userTable(users)
             }
         }
 
+        // WEB用のログイン画面-get
         get("/login") {
             call.respondHtml {
-                head {
-                    title { +"Login" }
-                }
-                body {
-                    form(action = "/web/login", method = FormMethod.post) {
-                        p {
-                            label { +"Email: " }
-                            emailInput(name = "email")
-                        }
-                        p {
-                            label { +"Password: " }
-                            passwordInput(name = "password")
-                        }
-                        p {
-                            submitInput { value = "Login" }
-                        }
-                        br
-                        br
-                        a("/profile") { +"アカウントお持ちでない方こちらで無料登録" }
-                    }
-                }
+                loginForm()
             }
         }
 
+        // WEB用のログイン-post
         post("/web/login") {
             val params = call.receiveParameters()
             val email = params["email"] ?: ""
             val password = params["password"] ?: ""
-            println("email: $email")
-            // Fetch user from DB
+
+            // DBから取得
             val user = fetchUserByEmail(email)
-            println("user: $user")
+
             if (user !== null) {
                 val userId = user.userId
                 val hashedPassword = user.password
@@ -249,6 +147,7 @@ fun Application.configureRouting() {
             }
         }
 
+        // API用のログイン-post
         post("/api/login") {
             val params = call.receiveParameters()
             val email = params["email"] ?: return@post call.respondText("Missing email")
@@ -263,8 +162,9 @@ fun Application.configureRouting() {
             call.respond(mapOf("token" to token))
         }
 
+        // JWT認証が必要なAPIはこちら
         authenticate("auth-jwt") {
-            // 請求書登録-post
+            // API用の請求書登録-post
             post("/api/invoice") {
                 val principal = call.principal<JWTPrincipal>()
                 val userId = principal!!.payload.getClaim("userId").asInt()
@@ -274,9 +174,7 @@ fun Application.configureRouting() {
                     val invoicesInput = InvoicesInput.fromParameters(params, userId)
                     val invoice = insertInvoice(invoicesInput)
 
-                    println("Saved invoice: $invoice")
-
-                    // ✅ Return JSON instead of HTML
+                    // HTMLの代わりにJSONを返却
                     call.respond(invoice.toDTO())
                 } catch (e: Exception) {
                     e.printStackTrace() // Consider using logging
@@ -290,7 +188,7 @@ fun Application.configureRouting() {
                 }
             }
 
-            // 請求書検索-post
+            // API用の請求書検索-post
             post("/api/invoice/list") {
                 val principal = call.principal<JWTPrincipal>()
                 val userId = principal!!.payload.getClaim("userId").asInt()
@@ -300,14 +198,12 @@ fun Application.configureRouting() {
                 val dateTo = LocalDate.parse(params["dateTo"]!!)
 
                 val invoiceList = fetchActiveDueDateInRange(dateFrom, dateTo, userId)
-
-                // Convert your DAO objects to DTO or Output
-                val outputList = invoiceList.map { it.toDTO() }  // or toOutput()
-
-                call.respond(outputList)  // This will respond JSON array if content negotiation with JSON is configured
+                val outputList = invoiceList.map { it.toDTO() }
+                call.respond(outputList)
             }
         }
 
+        // ログアウト
         get("/logout") {
             call.sessions.clear<UserSession>()
             call.respondRedirect("/login")
