@@ -1,10 +1,9 @@
 package com.example.views
 
-import com.example.models.Users
+import com.example.dto.UsersOutput
 import kotlinx.html.*
-import com.example.utils.formatDateTimeToString
 
-fun HTML.userTable(users: List<Users>) {
+fun HTML.userTable(users: List<UsersOutput>) {
     head { title { +"User Profiles" } }
     body { h1 { +"ユーザー一覧" }
         table {
@@ -21,8 +20,8 @@ fun HTML.userTable(users: List<Users>) {
                     td { +user.companyName }
                     td { +user.name }
                     td { +user.email }
-                    td { +formatDateTimeToString(user.createdAt) }
-                    td { +formatDateTimeToString(user.updatedAt) }
+                    td { +user.createdAt }
+                    td { +user.updatedAt }
                 }
             }
         }

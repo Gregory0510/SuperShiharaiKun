@@ -9,7 +9,7 @@ import com.example.repository.*
 import com.example.views.*
 import io.ktor.server.sessions.*
 import org.mindrot.jbcrypt.BCrypt
-import com.example.models.UserSession
+import com.example.dto.UserSession
 import com.example.utils.requireUserSession
 import com.example.dto.InvoicesInput
 import com.example.dto.UsersInput
@@ -112,7 +112,7 @@ fun Application.configureRouting() {
 
             val users = fetchAllUsers()
             call.respondHtml {
-                userTable(users)
+                userTable(users.toDTOList())
             }
         }
 
