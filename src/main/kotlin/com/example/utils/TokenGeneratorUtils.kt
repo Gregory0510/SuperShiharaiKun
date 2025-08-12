@@ -4,6 +4,9 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import java.util.*
 
+/**
+ * JWTトクーンを生成する
+ */
 fun generateToken(userId: Int): String {
     val secret = "your-secret-key"
     val issuer = "ktor.io"
