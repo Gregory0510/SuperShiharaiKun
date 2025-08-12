@@ -25,75 +25,112 @@ fun Application.configureRouting() {
     routing {
         // WEB用のホーム画面-get
         get("/") {
-            call.requireUserSession() ?: return@get
-
-            call.respondHtml {
-                homePage()
+            val session = call.requireUserSession() ?: return@get
+            try {
+                call.respondHtml {
+                    homePage()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                call.respondText("ホームページの表示に失敗しました。: ${e.message}", status = HttpStatusCode.InternalServerError)
             }
         }
 
         // WEB用の請求書登録画面-get
         get("/invoice") {
-            call.requireUserSession() ?: return@get
-
-            call.respondHtml {
-                invoiceForm()
+            val session = call.requireUserSession() ?: return@get
+            try {
+                call.respondHtml {
+                    invoiceForm()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                call.respondText("請求書登録画面の表示に失敗しました。: ${e.message}", status = HttpStatusCode.InternalServerError)
             }
         }
 
         // WEB用の請求書登録-post
         post("/web/invoice") {
             val session = call.requireUserSession() ?: return@post
-            val params = call.receiveParameters()
-
             try {
+                val params = call.receiveParameters()
                 val invoicesInput = InvoicesInput.fromParameters(params, session.userId)
                 val invoice = insertInvoice(invoicesInput)
-
                 call.respondHtml {
                     invoiceList(invoice)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                call.respondText("Failed to save invoices: ${e.message}", status = HttpStatusCode.InternalServerError)
+                call.respondText("請求書の登録に失敗しました。: ${e.message}", status = HttpStatusCode.InternalServerError)
             }
         }
 
         // WEB用の請求書検索画面-get
         get("/invoice/list") {
-            call.requireUserSession() ?: return@get
-
-            call.respondHtml {
-                invoiceSearchForm()
+            val session = call.requireUserSession() ?: return@get
+            try {
+                call.respondHtml {
+                    invoiceSearchForm()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                call.respondText("請求書検索画面の表示に失敗しました。: ${e.message}", status = HttpStatusCode.InternalServerError)
             }
         }
 
         // WEB用の請求書検索-post
         post("/invoice/list") {
             val session = call.requireUserSession() ?: return@post
-            val params = call.receiveParameters()
+            try {
+                val params = call.receiveParameters()
+                val dateFromStr = params["dateFrom"]
+                val dateToStr = params["dateTo"]
 
-            val dateFrom = LocalDate.parse(params["dateFrom"]!!)
-            val dateTo = LocalDate.parse(params["dateTo"]!!)
+                if (dateFromStr.isNullOrBlank() || dateToStr.isNullOrBlank()) {
+                    return@post call.respondText("開始日時または終了日時が入力されていません。", status = HttpStatusCode.BadRequest)
+                }
 
-            val invoiceList = fetchActiveDueDateInRange(dateFrom, dateTo, session.userId)
-            call.respondHtml {
-                invoiceTable(invoiceList)
+                val dateFrom = try {
+                    LocalDate.parse(dateFromStr)
+                } catch (e: Exception) {
+                    return@post call.respondText("開始日時の形式が不正です。", status = HttpStatusCode.BadRequest)
+                }
+
+                val dateTo = try {
+                    LocalDate.parse(dateToStr)
+                } catch (e: Exception) {
+                    return@post call.respondText("終了日時の形式が不正です。", status = HttpStatusCode.BadRequest)
+                }
+
+                val invoiceList = fetchActiveDueDateInRange(dateFrom, dateTo, session.userId)
+                call.respondHtml {
+                    invoiceTable(invoiceList)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                call.respondText("請求書一覧の検索に失敗しました。: ${e.message}", status = HttpStatusCode.InternalServerError)
             }
         }
 
         // WEB用のユーザー登録画面-get
         get("/profile") {
-            call.respondHtml {
-                profileForm()
+            try {
+                call.respondHtml {
+                    profileForm()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                call.respondText("ユーザー登録画面の表示に失敗しました。: ${e.message}", status = HttpStatusCode.InternalServerError)
             }
         }
 
         // WEB用のユーザ登録-post
         post("/profile") {
-            val params = call.receiveParameters()
-
             try {
+                val params = call.receiveParameters()
+                if (params["password"] != params["passwordConfirm"]) {
+                    return@post call.respondText("パスワードが一致していません。", status = HttpStatusCode.BadRequest)
+                }
                 val usersInput = UsersInput.fromParameters(params)
                 val users = insertUserProfile(usersInput)
 
@@ -102,82 +139,94 @@ fun Application.configureRouting() {
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                call.respondText("Failed to save Users: ${e.message}", status = HttpStatusCode.InternalServerError)
+                call.respondText("ユーザーの登録に失敗しました。: ${e.message}", status = HttpStatusCode.InternalServerError)
             }
         }
 
         // WEB用のユーザー一覧-get
         get("/users") {
-            call.requireUserSession() ?: return@get
-
-            val users = fetchAllUsers()
-            call.respondHtml {
-                userTable(users.toDTOList())
+            val session = call.requireUserSession() ?: return@get
+            try {
+                val users = fetchAllUsers()
+                call.respondHtml {
+                    userTable(users.toDTOList())
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                call.respondText("ユーザーの取得に失敗しました。: ${e.message}", status = HttpStatusCode.InternalServerError)
             }
         }
 
         // WEB用のログイン画面-get
         get("/login") {
-            call.respondHtml {
-                loginForm()
+            try {
+                call.respondHtml {
+                    loginForm()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                call.respondText("ログイン画面の表示に失敗しました。: ${e.message}", status = HttpStatusCode.InternalServerError)
             }
         }
 
         // WEB用のログイン-post
         post("/web/login") {
-            val params = call.receiveParameters()
-            val email = params["email"] ?: ""
-            val password = params["password"] ?: ""
+            try {
+                val params = call.receiveParameters()
+                val email = params["email"] ?: return@post call.respondText("Email missing", status = HttpStatusCode.BadRequest)
+                val password = params["password"] ?: return@post call.respondText("Password missing", status = HttpStatusCode.BadRequest)
 
-            // DBから取得
-            val user = fetchUserByEmail(email)
-
-            if (user !== null) {
-                val userId = user.userId
-                val hashedPassword = user.password
-
-                if (BCrypt.checkpw(password, hashedPassword)) {
-                    call.sessions.set(UserSession(userId, email))
+                val user = fetchUserByEmail(email)
+                if (user != null && BCrypt.checkpw(password, user.password)) {
+                    call.sessions.set(UserSession(user.userId, email))
                     call.respondRedirect("/")
                 } else {
-                    call.respondText("メールアドレス、またはパスワードが間違えています。")
+                    call.respondText("メールアドレス、またはパスワードが間違えています。", status = HttpStatusCode.Unauthorized)
                 }
-            } else {
-                call.respondText("メールアドレス、またはパスワードが間違えています。")
+            } catch (e: Exception) {
+                e.printStackTrace()
+                call.respondText("ログインに失敗しました。: ${e.message}", status = HttpStatusCode.InternalServerError)
             }
         }
 
         // API用のログイン-post
         post("/api/login") {
-            val params = call.receiveParameters()
-            val email = params["email"] ?: return@post call.respondText("Missing email")
-            val password = params["password"] ?: return@post call.respondText("Missing password")
+            try {
+                val params = call.receiveParameters()
+                val email = params["email"] ?: return@post call.respondText("Missing email", status = HttpStatusCode.BadRequest)
+                val password = params["password"] ?: return@post call.respondText("Missing password", status = HttpStatusCode.BadRequest)
 
-            val user = fetchUserByEmail(email)
-            if (user == null || !BCrypt.checkpw(password, user.password)) {
-                return@post call.respondText("メールアドレス、またはパスワードが間違えています。", status = HttpStatusCode.Unauthorized)
+                val user = fetchUserByEmail(email)
+                if (user == null || !BCrypt.checkpw(password, user.password)) {
+                    return@post call.respondText("メールアドレス、またはパスワードが間違えています。", status = HttpStatusCode.Unauthorized)
+                }
+
+                val token = generateToken(user.userId)
+                call.respond(mapOf("token" to token))
+            } catch (e: Exception) {
+                e.printStackTrace()
+                call.respondText("ログインに失敗しました。: ${e.message}", status = HttpStatusCode.InternalServerError)
             }
-
-            val token = generateToken(user.userId)
-            call.respond(mapOf("token" to token))
         }
 
         // JWT認証が必要なAPIはこちら
         authenticate("auth-jwt") {
             // API用の請求書登録-post
             post("/api/invoice") {
-                val principal = call.principal<JWTPrincipal>()
-                val userId = principal!!.payload.getClaim("userId").asInt()
-                val params = call.receiveParameters()
-
                 try {
+                    val principal = call.principal<JWTPrincipal>()
+                    if (principal == null) {
+                        return@post call.respondText("Unauthorized", status = HttpStatusCode.Unauthorized)
+                    }
+                    val userId = principal.payload.getClaim("userId").asInt()
+                    val params = call.receiveParameters()
+
                     val invoicesInput = InvoicesInput.fromParameters(params, userId)
                     val invoice = insertInvoice(invoicesInput)
 
-                    // HTMLの代わりにJSONを返却
                     call.respond(invoice.toDTO())
                 } catch (e: Exception) {
-                    e.printStackTrace() // Consider using logging
+                    e.printStackTrace()
                     call.respond(
                         HttpStatusCode.InternalServerError,
                         mapOf(
@@ -190,23 +239,58 @@ fun Application.configureRouting() {
 
             // API用の請求書検索-post
             post("/api/invoice/list") {
-                val principal = call.principal<JWTPrincipal>()
-                val userId = principal!!.payload.getClaim("userId").asInt()
+                try {
+                    val principal = call.principal<JWTPrincipal>()
+                    if (principal == null) {
+                        return@post call.respondText("Unauthorized", status = HttpStatusCode.Unauthorized)
+                    }
+                    val userId = principal.payload.getClaim("userId").asInt()
 
-                val params = call.receiveParameters()
-                val dateFrom = LocalDate.parse(params["dateFrom"]!!)
-                val dateTo = LocalDate.parse(params["dateTo"]!!)
+                    val params = call.receiveParameters()
+                    val dateFromStr = params["dateFrom"]
+                    val dateToStr = params["dateTo"]
 
-                val invoiceList = fetchActiveDueDateInRange(dateFrom, dateTo, userId)
-                val outputList = invoiceList.map { it.toDTO() }
-                call.respond(outputList)
+                    if (dateFromStr.isNullOrBlank() || dateToStr.isNullOrBlank()) {
+                        return@post call.respondText("Missing dateFrom or dateTo parameters", status = HttpStatusCode.BadRequest)
+                    }
+
+                    val dateFrom = try {
+                        LocalDate.parse(dateFromStr)
+                    } catch (e: Exception) {
+                        return@post call.respondText("Invalid dateFrom format", status = HttpStatusCode.BadRequest)
+                    }
+
+                    val dateTo = try {
+                        LocalDate.parse(dateToStr)
+                    } catch (e: Exception) {
+                        return@post call.respondText("Invalid dateTo format", status = HttpStatusCode.BadRequest)
+                    }
+
+                    val invoiceList = fetchActiveDueDateInRange(dateFrom, dateTo, userId)
+                    val outputList = invoiceList.map { it.toDTO() }
+                    call.respond(outputList)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        mapOf(
+                            "status" to "error",
+                            "message" to (e.message ?: "Unknown error")
+                        )
+                    )
+                }
             }
         }
 
         // ログアウト
         get("/logout") {
-            call.sessions.clear<UserSession>()
-            call.respondRedirect("/login")
+            try {
+                call.sessions.clear<UserSession>()
+                call.respondRedirect("/login")
+            } catch (e: Exception) {
+                e.printStackTrace()
+                call.respondText("ログアウトに失敗しました。: ${e.message}", status = HttpStatusCode.InternalServerError)
+            }
         }
     }
 }

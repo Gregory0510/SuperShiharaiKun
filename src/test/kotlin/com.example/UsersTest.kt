@@ -15,11 +15,6 @@ class UsersTest {
             module()
         }
         val response = client.get("/profile")
-        println("response1: " + response)
-        val contentType = response.contentType()
-        println("Response status: ${response.status}")
-        println("Response Content-Type: $contentType")
-        println("Response body: ${response.bodyAsText()}")
 
         assertEquals(HttpStatusCode.OK, response.status)
         assertEquals("html", response.contentType()?.contentSubtype)
@@ -45,10 +40,6 @@ class UsersTest {
             )
         }
 
-        println("Response status: ${response.status}")
-        println("Response Content-Type: ${response.contentType()}")
-        println("Response body: ${response.bodyAsText()}")
-
         assertEquals(HttpStatusCode.OK, response.status)
         assertEquals("text/html; charset=UTF-8", response.contentType().toString())
     }
@@ -60,11 +51,6 @@ class UsersTest {
             module()
         }
         val response = client.get("/users")
-        println("response1: " + response)
-        val contentType = response.contentType()
-        println("Response status: ${response.status}")
-        println("Response Content-Type: $contentType")
-        println("Response body: ${response.bodyAsText()}")
 
         assertEquals(HttpStatusCode.OK, response.status)
         assertEquals("html", response.contentType()?.contentSubtype)

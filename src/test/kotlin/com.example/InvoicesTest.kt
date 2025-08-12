@@ -15,11 +15,6 @@ class InvoicesTest {
             module()
         }
         val response = client.get("/invoice")
-        println("response1: " + response)
-        val contentType = response.contentType()
-        println("Response status: ${response.status}")
-        println("Response Content-Type: $contentType")
-        println("Response body: ${response.bodyAsText()}")
 
         assertEquals(HttpStatusCode.OK, response.status)
         assertEquals("html", response.contentType()?.contentSubtype)
@@ -32,11 +27,6 @@ class InvoicesTest {
             module()
         }
         val response = client.get("/invoice/list")
-        println("response1: " + response)
-        val contentType = response.contentType()
-        println("Response status: ${response.status}")
-        println("Response Content-Type: $contentType")
-        println("Response body: ${response.bodyAsText()}")
 
         assertEquals(HttpStatusCode.OK, response.status)
         assertEquals("html", response.contentType()?.contentSubtype)
