@@ -26,10 +26,6 @@ class ApiTest {
             )
         }
 
-        println("Response status: ${response.status}")
-        println("Response Content-Type: ${response.contentType()}")
-        println("Response body: ${response.bodyAsText()}")
-
         assertEquals(HttpStatusCode.OK, response.status)
         assertTrue(response.bodyAsText().contains("\"token\": "))
     }
